@@ -205,6 +205,15 @@ function esc(s) {
   }[c]));
 }
 
+// タイトル用：空白で区切ったかたまりごとに改行させる（「追いコン」が途中で切れないように）
+function titleHTML(s) {
+  return String(s == null ? '' : s)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => `<span class="title-chunk">${esc(part)}</span>`)
+    .join(' ');
+}
+
 // ランダムなID
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -1056,7 +1065,7 @@ async function renderAnswer(id, isPreview) {
     app.innerHTML = `${banner}
       <main class="container narrow answer">
         <section class="card head-card">
-          <h1 class="view-title">${esc(form.title || '無題のフォーム')}</h1>
+          <h1 class="view-title">${titleHTML(form.title || '無題のフォーム')}</h1>
           <p>このフォームは現在、回答を受け付けていません。</p>
         </section>
       </main>`;
@@ -1073,7 +1082,7 @@ async function renderAnswer(id, isPreview) {
       </div>` : ''}
     <main class="container narrow answer">
       <section class="card head-card">
-        <h1 class="view-title">${esc(form.title || '無題のフォーム')}</h1>
+        <h1 class="view-title">${titleHTML(form.title || '無題のフォーム')}</h1>
         <div class="head-extra">
           ${form.description ? `<p class="view-desc">${esc(form.description)}</p>` : ''}
           ${allQuestions(form).some((q) => q.required) ? '<p class="req-note"><span class="req">*</span> 必須の質問です</p>' : ''}
@@ -1375,7 +1384,7 @@ async function renderDone(id) {
   app.innerHTML = `
     <main class="container narrow answer">
       <section class="card head-card">
-        <h1 class="view-title">${esc(form.title || '無題のフォーム')}</h1>
+        <h1 class="view-title">${titleHTML(form.title || '無題のフォーム')}</h1>
         <p class="done-msg">${esc(message)}</p>
         ${REMOTE
           ? `<p class="hint">回答を修正したいときは、もう一度回答してください（同じ名前の場合は最新の回答が使われます）。</p>

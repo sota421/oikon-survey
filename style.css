@@ -8,10 +8,10 @@
  * 1. 日付ピッカー（月カレンダー）
  * ========================================================= */
 .dp {
-  --dp-blue: #4A90D9;      /* 未選択の丸 */
-  --dp-sel: #5FA8B8;       /* 選択中の丸 */
-  --dp-sel-text: #E6F6E4;  /* 選択中の文字（薄い緑がかった白） */
-  --dp-bar: #E3F5E1;       /* 選択範囲の背景バー */
+  --dp-off: #808080;       /* 未選択の丸（グレー） */
+  --dp-sel: #66A5DF;       /* 選択中の丸（青） */
+  --dp-sel-text: #E8F2FB;  /* 選択中の文字（薄い青みの白） */
+  --dp-bar: #E6F0FA;       /* 選択範囲の背景バー（薄い青） */
   --dp-size: 50px;         /* 丸の最大直径 */
   user-select: none;
   -webkit-user-select: none;
@@ -43,7 +43,7 @@
   border-radius: 50%;
   border: 1px solid #d5dbe1;
   background: #fff;
-  color: #4A90D9;
+  color: #66A5DF;
   font-size: 13px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -114,7 +114,7 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--dp-blue);
+  background: var(--dp-off);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
@@ -480,7 +480,10 @@ body {
 }
 .preview-bar a { color: var(--accent); font-weight: 500; }
 
-.view-title { margin: 0 0 8px; font-size: 28px; font-weight: 400; }
+/* word-break: auto-phrase … 日本語を言葉の区切りで改行する（対応ブラウザのみ。未対応でも普通に表示される） */
+.view-title { margin: 0 0 8px; font-size: 30px; font-weight: 700; line-height: 1.35; word-break: auto-phrase; }
+/* 空白で区切ったかたまりは途中で改行しない（画面より長いかたまりだけは中で折り返す） */
+.title-chunk { display: inline-block; }
 .view-desc { margin: 0 0 8px; white-space: pre-wrap; }
 .req-note {
   margin: 12px 0 0;
@@ -547,23 +550,23 @@ body {
 .bar-value span { color: var(--muted); font-size: 12px; }
 
 /* 日付選択の集計：最多日を強調 */
-.date-bars .bar-fill { background: #4A90D9; }
+.date-bars .bar-fill { background: #A9C9EC; }
 .date-bars .sat { color: #2F6FD6; }
 .date-bars .sun { color: #D64545; }
 .bar-row.top {
   margin: 0 -8px;
   padding: 6px 8px;
   border-radius: 6px;
-  background: #E3F5E1;
+  background: #E6F0FA;
   font-weight: 600;
 }
-.bar-row.top .bar-fill { background: #5FA8B8; }
+.bar-row.top .bar-fill { background: #66A5DF; }
 .top-badge {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 8px;
   border-radius: 10px;
-  background: #5FA8B8;
+  background: #66A5DF;
   color: #fff;
   font-size: 11px;
   font-weight: 600;
@@ -572,7 +575,7 @@ body {
   margin-bottom: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: #E3F5E1;
+  background: #E6F0FA;
 }
 
 .text-answers { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
@@ -611,7 +614,8 @@ body {
   .save-status { display: none; }
   .topbar { padding: 8px; }
   .topbar .btn.primary { padding: 8px 10px; font-size: 13px; }
-  .head-title, .view-title { font-size: 22px; }
+  .head-title { font-size: 22px; }
+  .view-title { font-size: 26px; } /* スマホでも読みやすい大きさ（太字） */
   .q-type { flex: 1 1 100%; }
   .template-thumb { width: 140px; height: 100px; }
   .fake-answer, .fake-answer.long { width: 100%; }
@@ -822,7 +826,7 @@ body {
 .matrix thead th small { font-weight: 400; }
 .matrix thead th.sat { color: #2F6FD6; }
 .matrix thead th.sun { color: #D64545; }
-.matrix td { color: #2e7d6b; font-weight: 600; }
+.matrix td { color: #3B7FC4; font-weight: 600; }
 .matrix .sticky {
   position: sticky;
   left: 0;
@@ -838,8 +842,8 @@ body {
 .matrix thead .sticky { background: #fafafa; }
 .matrix tfoot th,
 .matrix tfoot td { background: #fafafa; color: var(--text); border-bottom: none; }
-.matrix .top { background: #E3F5E1; }
-.matrix thead th.top { background: #5FA8B8; color: #fff; }
+.matrix .top { background: #E6F0FA; }
+.matrix thead th.top { background: #66A5DF; color: #fff; }
 
 @media (max-width: 600px) {
   .placeholder-input, .placeholder-input.long { width: 100%; }
