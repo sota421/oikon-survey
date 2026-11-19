@@ -100,6 +100,15 @@ const LocalStore = {
   async deleteResponses(formId) {
     localStorage.removeItem(this.RESPONSES_PREFIX + formId);
   },
+  // 指定した回答だけを削除
+  async deleteResponseIds(formId, ids) {
+    const set = new Set(ids);
+    const key = this.RESPONSES_PREFIX + formId;
+    const before = this._read(key);
+    const after = before.filter((r) => !set.has(r.id));
+    this._write(key, after);
+    return before.length - after.length;
+  },
 };
 
 /* ---------- 公開モード：Google Apps Script 経由でスプレッドシートに保存 ---------- */
@@ -171,9 +180,28 @@ const RemoteStore = {
     return data;
   },
 
-  // 公開モードでは削除はスプレッドシートの行を直接消して行う
+  // 公開モードでは「すべて削除」は使わない（消すときは選んで削除する）
   async deleteResponses() {
     throw new Error('スプレッドシートの行を削除してください');
+  },
+
+  // 指定した回答だけを削除（合言葉が必要。スプレッドシートの該当行が消える）
+  async deleteResponseIds(formId, ids) {
+    const key = getAdminKey();
+    if (!key) throw new AuthError();
+    const res = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', key, formId, ids }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      if (data.error === 'unauthorized') throw new AuthError();
+      // 古い Code.gs のままだと削除の命令を知らないので bad_request が返る
+      if (data.error === 'bad_request') throw new Error('old_script');
+      throw new Error(data.error || '削除に失敗しました');
+    }
+    return data.deleted;
   },
 };
 
@@ -1515,6 +1543,7 @@ async function renderResults(id) {
           <p class="res-note">同じ名前で複数回答した人がいたため、最新の回答だけを集計しています（${dupNames.map(esc).join('、')}）。</p>` : ''}
         ${REMOTE && !accepting ? '<p class="res-note">現在、回答の受付を停止しています（config.js の ACCEPTING）。</p>' : ''}
       </section>
+      ${allResponses.length ? responseListHTML(form, allResponses, new Set(dropped), nameQ) : ''}
       ${responses.length
         ? form.pages.map((p, pi) => `
             ${form.pages.length > 1 ? `<h2 class="res-page-title">ページ ${pi + 1}${p.title ? `：${esc(p.title)}` : ''}</h2>` : ''}
@@ -1524,6 +1553,7 @@ async function renderResults(id) {
   setupHeader(form);
 
   $('#csv').addEventListener('click', () => downloadCSV(form, responses));
+  if (allResponses.length) setupResponseList(id);
 
   if (REMOTE) {
     $('#reload').addEventListener('click', () => renderResults(id));
@@ -1546,6 +1576,93 @@ async function renderResults(id) {
     if (!confirm(`${allResponses.length}件の回答をすべて削除しますか？\nこの操作は元に戻せません。`)) return;
     await Store.deleteResponses(id);
     renderResults(id);
+  });
+}
+
+/* ---------- 個別の回答の一覧（確認・削除） ---------- */
+
+let keepResponseListOpen = false; // 削除後に描き直すとき、一覧を開いたままにする
+
+function responseListHTML(form, all, droppedSet, nameQ) {
+  const others = allQuestions(form).filter((q) => q !== nameQ);
+  const summaryOf = (r) => {
+    const s = others.map((q) => answerToText(q, r.answers[q.id])).filter(Boolean).join(' / ');
+    return s.length > 120 ? s.slice(0, 120) + '…' : s;
+  };
+  const rows = all.slice().sort((a, b) => b.submittedAt - a.submittedAt); // 新しい順
+  const open = keepResponseListOpen;
+  keepResponseListOpen = false;
+
+  return `
+    <details class="card resp-list" ${open ? 'open' : ''}>
+      <summary>個別の回答を確認・削除する（${all.length}件）</summary>
+      <p class="hint">テスト用などの不要な回答にチェックを入れて「選択した回答を削除」を押してください。${REMOTE ? 'スプレッドシートの行も削除されます。' : ''}</p>
+      <div class="resp-actions">
+        <label class="resp-all"><input type="checkbox" id="checkAll"> すべて選択</label>
+        <button type="button" class="btn danger" id="delSelected" disabled>選択した回答を削除</button>
+      </div>
+      <ul class="resp-items">
+        ${rows.map((r) => `
+          <li class="resp-item ${droppedSet.has(r) ? 'old' : ''}">
+            <label>
+              <input type="checkbox" class="resp-check" value="${esc(r.id)}">
+              <div class="resp-main">
+                <div class="resp-top">
+                  <span class="resp-name">${esc((nameQ && r.answers[nameQ.id]) || '（名前なし）')}</span>
+                  <span class="resp-time">${formatDateTime(r.submittedAt)}</span>
+                  ${droppedSet.has(r) ? '<span class="resp-tag">古い回答（集計外）</span>' : ''}
+                </div>
+                <div class="resp-summary">${esc(summaryOf(r)) || '<span class="hint small">（ほかの回答なし）</span>'}</div>
+              </div>
+            </label>
+          </li>`).join('')}
+      </ul>
+    </details>`;
+}
+
+function setupResponseList(formId) {
+  const list = $('.resp-list');
+  const checks = [...list.querySelectorAll('.resp-check')];
+  const checkAll = $('#checkAll');
+  const delBtn = $('#delSelected');
+
+  const selectedIds = () => checks.filter((c) => c.checked).map((c) => c.value);
+  const refresh = () => {
+    const n = selectedIds().length;
+    delBtn.disabled = n === 0;
+    delBtn.textContent = n ? `選択した回答を削除（${n}件）` : '選択した回答を削除';
+    checkAll.checked = n === checks.length;
+    checkAll.indeterminate = n > 0 && n < checks.length;
+    checks.forEach((c) => c.closest('.resp-item').classList.toggle('checked', c.checked));
+  };
+  checks.forEach((c) => c.addEventListener('change', refresh));
+  checkAll.addEventListener('change', () => {
+    checks.forEach((c) => { c.checked = checkAll.checked; });
+    refresh();
+  });
+
+  delBtn.addEventListener('click', async () => {
+    const ids = selectedIds();
+    if (!ids.length) return;
+    if (!confirm(`選択した${ids.length}件の回答を削除しますか？\nこの操作は元に戻せません。`)) return;
+    delBtn.disabled = true;
+    delBtn.textContent = '削除中…';
+    try {
+      const n = await Store.deleteResponseIds(formId, ids);
+      keepResponseListOpen = true;
+      await renderResults(formId);
+      toast(`${n}件の回答を削除しました`);
+    } catch (err) {
+      console.error(err);
+      if (err instanceof AuthError) {
+        setAdminKey('');
+        return renderKeyPrompt(formId, true);
+      }
+      toast(err.message === 'old_script'
+        ? '削除できませんでした。Apps Script（Code.gs）を新しいものに更新してください'
+        : '削除に失敗しました。通信環境を確認してもう一度お試しください');
+      refresh();
+    }
   });
 }
 

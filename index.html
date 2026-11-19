@@ -4,7 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>アンケート</title>
-  <link rel="stylesheet" href="style.css">
+  <!--
+    ファイル名の後ろの ?v=… は「版番号」。
+    style.css や script.js を更新したら、この数字を1つ増やして index.html も一緒にアップロードすると、
+    スマホに古いファイルが残っていても必ず新しいほうが読み込まれる。
+  -->
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <!-- 画面はすべて script.js がここに描画する（#/edit/ID などのハッシュで切り替え） -->
@@ -13,8 +18,8 @@
   <!-- 画面下に出る小さな通知 -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="config.js"></script>
-  <script src="datepicker.js"></script>
-  <script src="script.js"></script>
+  <script src="config.js?v=4"></script>
+  <script src="datepicker.js?v=4"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>
