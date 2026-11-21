@@ -478,7 +478,7 @@ function oikonForm(fixedIds = false) {
       dateEnd: OIKON.dateEnd,
     }),
     q('request', 'paragraph', 'ご要望・ご意見', {
-      description: 'お店の希望、苦手な食べ物、その他なんでもどうぞ',
+      description: 'お店の希望、ご予算の目安（例：1人4,000円くらいまで）、苦手な食べ物・アレルギーなど、なんでもお気軽にどうぞ',
     }),
   ];
   return normalizeForm(f);
